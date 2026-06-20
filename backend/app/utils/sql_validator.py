@@ -28,7 +28,6 @@ def is_read_only_query(sql: str) -> tuple[bool, str]:
 
 def add_limit_if_missing(sql: str, limit: int = 100) -> str:
     cleaned_sql = clean_sql_query(sql)
-    normalized_sql = cleaned_sql.lower()
-    if " limit " in normalized_sql:
+    if re.search(r"\blimit\b", cleaned_sql, re.IGNORECASE):
         return cleaned_sql
     return f"{cleaned_sql} LIMIT {limit}"

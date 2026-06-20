@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes.db import router as db_router
 from app.routes.query import router as query_router
-
+from app.routes.ai import router as ai_router
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION
@@ -17,6 +17,7 @@ app.add_middleware(
 )
 app.include_router(db_router)
 app.include_router(query_router)
+app.include_router(ai_router)
 
 @app.get("/")
 def root():
