@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Bar,
@@ -10,7 +10,6 @@ import {
   YAxis,
 } from "recharts";
 import "./App.css";
-
 type AskResponse = {
   question: string;
   sql: string;
@@ -20,8 +19,19 @@ type AskResponse = {
   columns: string[];
   rows: Record<string, string | number | null>[];
   row_count: number;
+  history_id: number | null;
 };
-
+type HistoryItem = {
+  history_id: number;
+  question: string;
+  generated_sql: string;
+  explanation: string;
+  row_count: number;
+  created_at: string;
+};
+type HistoryResponse = {
+  history: HistoryItem[];
+};
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 function isNumericValue(value: string | number | null) {
@@ -49,15 +59,32 @@ function getChartData(result: AskResponse | null) {
     data,
   };
 }
-
 function App() {
   const [question, setQuestion] = useState(
     "Which product category generated the highest revenue?"
   );
   const [result, setResult] = useState<AskResponse | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState("");
   const chartConfig = getChartData(result);
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const response = await axios.get<HistoryResponse>(
+        `${API_BASE_URL}/history?limit=10`
+      );
+      setHistory(response.data.history);
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+  useEffect(() => {
+    fetchHistory();
+  }, []);
   const handleAskQuestion = async () => {
     if (!question.trim()) {
       setError("Please enter a question.");
@@ -71,6 +98,7 @@ function App() {
         question,
       });
       setResult(response.data);
+      fetchHistory();
     } catch (err: any) {
       console.error("API Error:", err);
       const detail = err.response?.data?.detail;
@@ -86,6 +114,13 @@ function App() {
     } finally {
       setLoading(false);
     }
+  };
+  const handleUseHistoryQuestion = (historyItem: HistoryItem) => {
+    setQuestion(historyItem.question);
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
   return (
     <main className="app">
@@ -106,18 +141,49 @@ function App() {
           <p>Insights</p>
         </div>
       </section>
-      <section className="card question-card">
-        <label htmlFor="question">Ask a data question</label>
-        <textarea
-          id="question"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Example: Show total revenue by product category"
-        />
-        <button onClick={handleAskQuestion} disabled={loading}>
-          {loading ? "Thinking..." : "Ask AI Assistant"}
-        </button>
-        {error && <div className="error">{error}</div>}
+      <section className="workspace-grid">
+        <div className="card question-card">
+          <label htmlFor="question">Ask a data question</label>
+          <textarea
+            id="question"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            placeholder="Example: Show total revenue by product category"
+          />
+          <button onClick={handleAskQuestion} disabled={loading}>
+            {loading ? "Thinking..." : "Ask AI Assistant"}
+          </button>
+          {error && <div className="error">{error}</div>}
+        </div>
+        <aside className="card history-card">
+          <div className="history-header">
+            <h2>Recent Questions</h2>
+            <button className="ghost-button" onClick={fetchHistory}>
+              Refresh
+            </button>
+          </div>
+          {historyLoading ? (
+            <p className="row-count">Loading history...</p>
+          ) : history.length > 0 ? (
+            <div className="history-list">
+              {history.map((item) => (
+                <button
+                  key={item.history_id}
+                  className="history-item"
+                  onClick={() => handleUseHistoryQuestion(item)}
+                >
+                  <span>{item.question}</span>
+                  <small>
+                    {item.row_count} row(s) •{" "}
+                    {new Date(item.created_at).toLocaleString()}
+                  </small>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="row-count">No history yet. Ask your first question.</p>
+          )}
+        </aside>
       </section>
       {result && (
         <section className="results">
@@ -133,6 +199,10 @@ function App() {
                 {result.is_safe ? "Safe query" : "Unsafe query"}
               </p>
               <p>{result.safety_message}</p>
+
+              {result.history_id && (
+                <p className="row-count">Saved as history #{result.history_id}</p>
+              )}
             </div>
           </div>
           <div className="content-grid">
