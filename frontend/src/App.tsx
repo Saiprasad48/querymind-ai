@@ -59,6 +59,34 @@ function getChartData(result: AskResponse | null) {
     data,
   };
 }
+function escapeCsvValue(value: string | number | null) {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  if (
+    stringValue.includes(",") ||
+    stringValue.includes('"') ||
+    stringValue.includes("\n")
+  ) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+function downloadResultAsCsv(result: AskResponse) {
+  const headers = result.columns.join(",");
+  const rows = result.rows.map((row) =>
+    result.columns.map((column) => escapeCsvValue(row[column])).join(",")
+  );
+  const csvContent = [headers, ...rows].join("\n");
+  const blob = new Blob([csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `querymind-result-${result.history_id ?? Date.now()}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 function App() {
   const [question, setQuestion] = useState(
     "Which product category generated the highest revenue?"
@@ -268,8 +296,20 @@ function App() {
             )}
           </div>
           <div className="card">
-            <h2>Results</h2>
-            <p className="row-count">{result.row_count} row(s) returned</p>
+            <div className="results-header">
+              <div>
+                <h2>Results</h2>
+                <p className="row-count">{result.row_count} row(s) returned</p>
+              </div>
+              {result.rows.length > 0 && (
+                <button
+                  className="secondary-button"
+                  onClick={() => downloadResultAsCsv(result)}
+                >
+                  Export CSV
+                </button>
+              )}
+            </div>
             {result.rows.length > 0 ? (
               <div className="table-wrapper">
                 <table>

@@ -367,3 +367,26 @@ td {
 .delete-history-button:hover {
   background: #fef2f2;
 }
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.results-header h2 {
+  margin-bottom: 6px;
+}
+
+.secondary-button {
+  margin: 0;
+  background: #eef2ff;
+  color: #1d4ed8;
+  border: 1px solid #c7d2fe;
+}
+
+.secondary-button:hover {
+  background: #dbeafe;
+}
