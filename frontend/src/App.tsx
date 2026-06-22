@@ -122,6 +122,30 @@ function App() {
       behavior: "smooth",
     });
   };
+  const handleDeleteHistoryItem = async (historyId: number) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/history/${historyId}`);
+      setHistory((currentHistory) =>
+        currentHistory.filter((item) => item.history_id !== historyId)
+      );
+    } catch (err) {
+      console.error("Failed to delete history item:", err);
+      setError("Failed to delete history item.");
+    }
+  };
+  const handleClearHistory = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to clear all query history?"
+    );
+    if (!confirmed) return;
+    try {
+      await axios.delete(`${API_BASE_URL}/history`);
+      setHistory([]);
+    } catch (err) {
+      console.error("Failed to clear history:", err);
+      setError("Failed to clear query history.");
+    }
+  };
   return (
     <main className="app">
       <section className="hero">
@@ -156,30 +180,42 @@ function App() {
           {error && <div className="error">{error}</div>}
         </div>
         <aside className="card history-card">
-          <div className="history-header">
-            <h2>Recent Questions</h2>
+        <div className="history-header">
+          <h2>Recent Questions</h2>
+          <div className="history-actions">
             <button className="ghost-button" onClick={fetchHistory}>
               Refresh
             </button>
+            <button className="danger-button" onClick={handleClearHistory}>
+              Clear
+            </button>
           </div>
+        </div>
           {historyLoading ? (
             <p className="row-count">Loading history...</p>
           ) : history.length > 0 ? (
-            <div className="history-list">
-              {history.map((item) => (
-                <button
-                  key={item.history_id}
-                  className="history-item"
-                  onClick={() => handleUseHistoryQuestion(item)}
-                >
-                  <span>{item.question}</span>
-                  <small>
-                    {item.row_count} row(s) •{" "}
-                    {new Date(item.created_at).toLocaleString()}
-                  </small>
-                </button>
-              ))}
+        <div className="history-list">
+          {history.map((item) => (
+            <div key={item.history_id} className="history-item">
+              <button
+                className="history-question-button"
+                onClick={() => handleUseHistoryQuestion(item)}
+              >
+                <span>{item.question}</span>
+                <small>
+                  {item.row_count} row(s) •{" "}
+                  {new Date(item.created_at).toLocaleString()}
+                </small>
+              </button>
+              <button
+                className="delete-history-button"
+                onClick={() => handleDeleteHistoryItem(item.history_id)}
+              >
+                Delete
+              </button>
             </div>
+          ))}
+        </div>
           ) : (
             <p className="row-count">No history yet. Ask your first question.</p>
           )}

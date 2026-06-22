@@ -3,7 +3,6 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from app.database import engine
-
 router = APIRouter(prefix="/history", tags=["History"])
 
 @router.get("")
@@ -62,4 +61,46 @@ def get_query_history_item(history_id: int):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch history item: {str(error)}"
+        )
+
+@router.delete("/{history_id}")
+def delete_query_history_item(history_id: int):
+    try:
+        query = text("""
+            DELETE FROM query_history
+            WHERE history_id = :history_id
+            RETURNING history_id;
+        """)
+        with engine.begin() as connection:
+            deleted_id = connection.execute(
+                query,
+                {"history_id": history_id}
+            ).scalar()
+        if not deleted_id:
+            raise HTTPException(
+                status_code=404,
+                detail="History item not found."
+            )
+        return {
+            "message": "History item deleted successfully.",
+            "history_id": deleted_id
+        }
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete history item: {str(error)}"
+        )
+
+@router.delete("")
+def clear_query_history():
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("DELETE FROM query_history;"))
+        return {
+            "message": "Query history cleared successfully."
+        }
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to clear query history: {str(error)}"
         )

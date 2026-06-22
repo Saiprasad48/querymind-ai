@@ -128,16 +128,14 @@ h1 {
 }
 
 .history-item {
-  margin: 0;
   width: 100%;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   color: #172033;
-  text-align: left;
   padding: 12px;
   border-radius: 12px;
   display: grid;
-  gap: 7px;
+  gap: 10px;
 }
 
 .history-item:hover {
@@ -309,4 +307,63 @@ td {
   .hero-panel {
     flex-direction: column;
   }
+}
+
+.history-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.danger-button {
+  margin: 0;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 9px 13px;
+  font-size: 13px;
+}
+
+.danger-button:hover {
+  background: #fecaca;
+}
+
+.history-question-button {
+  margin: 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #172033;
+  text-align: left;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.history-question-button:hover {
+  background: transparent;
+}
+
+.history-question-button span {
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.history-question-button small {
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.delete-history-button {
+  margin: 0;
+  justify-self: start;
+  background: #ffffff;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+.delete-history-button:hover {
+  background: #fef2f2;
 }
