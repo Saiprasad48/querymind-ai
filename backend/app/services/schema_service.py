@@ -9,6 +9,7 @@ def get_schema_description() -> str:
             data_type
         FROM information_schema.columns
         WHERE table_schema = 'public'
+          AND table_name NOT IN ('query_history')
         ORDER BY table_name, ordinal_position;
     """)
     schema = {}

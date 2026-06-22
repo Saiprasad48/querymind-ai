@@ -10,10 +10,13 @@ from app.services.gemini_service import generate_sql_from_question, GeminiServic
 from app.utils.sql_validator import is_read_only_query, add_limit_if_missing
 
 router = APIRouter(prefix="/ai", tags=["AI"])
+
 class GenerateSQLRequest(BaseModel):
     question: str
+
 class AskQuestionRequest(BaseModel):
     question: str
+
 class AskQuestionResponse(BaseModel):
     question: str
     sql: str
@@ -23,6 +26,7 @@ class AskQuestionResponse(BaseModel):
     columns: list[str]
     rows: list[dict[str, Any]]
     row_count: int
+    history_id: int | None = None
 
 @router.post("/generate-sql")
 def generate_sql(request: GenerateSQLRequest):
@@ -79,10 +83,35 @@ def ask_question(request: AskQuestionRequest):
                 }
             )
         safe_sql = add_limit_if_missing(sql)
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             result = connection.execute(text(safe_sql))
             rows = [dict(row._mapping) for row in result.fetchall()]
             columns = list(result.keys())
+            row_count = len(rows)
+            history_result = connection.execute(
+                text("""
+                    INSERT INTO query_history (
+                        question,
+                        generated_sql,
+                        explanation,
+                        row_count
+                    )
+                    VALUES (
+                        :question,
+                        :generated_sql,
+                        :explanation,
+                        :row_count
+                    )
+                    RETURNING history_id;
+                """),
+                {
+                    "question": request.question,
+                    "generated_sql": safe_sql,
+                    "explanation": explanation,
+                    "row_count": row_count
+                }
+            )
+            history_id = history_result.scalar()
         response = {
             "question": request.question,
             "sql": safe_sql,
@@ -91,7 +120,8 @@ def ask_question(request: AskQuestionRequest):
             "safety_message": safety_message,
             "columns": columns,
             "rows": rows,
-            "row_count": len(rows)
+            "row_count": row_count,
+            "history_id": history_id
         }
         return jsonable_encoder(response)
     except GeminiServiceError as error:
